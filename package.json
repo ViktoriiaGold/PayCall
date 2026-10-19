@@ -1,0 +1,16 @@
+{
+  "name": "card-app",
+  "version": "1.0.0",
+  "description": "Integrated Order and Card Processing Server",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-session": "^1.18.1",
+    "express-useragent": "^1.0.1",
+    "geoip-lite": "^1.4.10",
+    "sqlite3": "^5.1.7"
+  }
+}

